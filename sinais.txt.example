@@ -1,0 +1,3 @@
+# Apague todos os comentários
+# datahorario,par_moeda,acao,tempo(em minutos),valor_entrada(float),quantidade_martingale(inteiro)
+2020-07-08 02:37:00,GBPJPY,PUT,1,2.5,1
