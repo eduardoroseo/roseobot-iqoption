@@ -14,7 +14,11 @@ def conta_config():
     arquivo = configparser.RawConfigParser()
     arquivo.read('config.txt')
 
-    return {'email': arquivo.get('CREDENCIAIS', 'email'), 'senha': arquivo.get('CREDENCIAIS', 'senha')}
+    return {
+        'email': arquivo.get('CREDENCIAIS', 'email'),
+        'senha': arquivo.get('CREDENCIAIS', 'senha'),
+        'telefone_wpp': arquivo.get('GERAL', 'telefone_wpp')
+    }
 
 
 conta_config = conta_config()
@@ -99,13 +103,13 @@ def carregar_sinais():
 def entrada(valor, par_moedas, acao_entrada, expiracao, hora_operacao, gale):
     status, id_order = API.buy(valor, par_moedas, acao_entrada, expiracao)
     if status:
-        status, valor = API.check_win_v4(id_order)
+        status, valor_lucro = API.check_win_v4(id_order)
 
         if status == 'win':
             icon = '✅😎 '
             status_do_pokas = 'Win!!'
         else:
-            if valor == 0:
+            if valor_lucro == 0:
                 icon = '❌👀 '
                 status_do_pokas = 'Empatou!!'
             else:
@@ -117,19 +121,21 @@ def entrada(valor, par_moedas, acao_entrada, expiracao, hora_operacao, gale):
         else:
             icon_acao = '📉 PUT'
 
+        print(str(valor))
+
         if status == 'loose' and gale > 0:
-            payout = get_payout(par_moedas, 'turbo') / 100
-            novo_valor = martingale('simples', valor, payout, valor + (valor * payout))
+            payout_par = get_payout(par_moedas, 'turbo') / 100
+            valor_com_martingale = martingale('auto', valor, payout_par, valor + (valor * payout_par))
             threading.Thread(
                 target=notificar_wpp,
                 args=(
                     '👀 📊 *MARTINGALE* ' + str(gale) + ': ' + par_moedas + ' | ' + acao_entrada.upper() +
-                    '\n*Novo Valor de entrada*: ' + str(novo_valor),)).start()
+                    '\n*Novo Valor de entrada*: ' + str(valor_com_martingale),)).start()
             gale = gale - 1
             threading.Thread(
                 target=entrada,
                 args=(
-                    novo_valor,
+                    valor_com_martingale,
                     par_moedas,
                     acao_entrada,
                     expiracao,
@@ -137,7 +143,7 @@ def entrada(valor, par_moedas, acao_entrada, expiracao, hora_operacao, gale):
                     gale,)).start()
             return True
 
-        resultado = icon + status_do_pokas + ' ( ' + str(round(valor, 2)) + ' ) \n'
+        resultado = icon + status_do_pokas + ' ( ' + str(round(valor_lucro, 2)) + ' ) \n'
         sinal_formatado = icon_acao + ' | ' + par_moedas + ' | ' + hora_operacao + '\n'
 
         notificar_wpp(
@@ -156,7 +162,7 @@ def entrada(valor, par_moedas, acao_entrada, expiracao, hora_operacao, gale):
 
 
 def notificar_wpp(message):
-    payload = {"to": "558588179596@c.us", "message": message}
+    payload = {"to": str(conta_config['telefone_wpp']) + "@c.us", "message": message}
     r = requests.get("http://localhost:3000", params=payload)
     return r.content
 

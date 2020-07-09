@@ -1,3 +1,6 @@
 [CREDENCIAIS]
 email = seuemail
 senha = seusenha
+
+[GERAL]
+telefone_wpp = 558588179596
